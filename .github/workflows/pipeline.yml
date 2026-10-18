@@ -61,9 +61,9 @@ jobs:
         run: |
           mkdir -p state/runlogs
           if [ "${{ github.event_name }}" = "repository_dispatch" ] && [ "${{ github.event.action }}" = "app_action" ]; then
-            python jobs/callback.py > /tmp/job.log 2>&1; rc=$?
+            rc=0; python jobs/callback.py > /tmp/job.log 2>&1 || rc=$?
           else
-            python jobs/pipeline.py > /tmp/job.log 2>&1; rc=$?
+            rc=0; python jobs/pipeline.py > /tmp/job.log 2>&1 || rc=$?
           fi
           tail -n 400 /tmp/job.log > state/runlogs/pipeline.log
           echo "exit code: $rc"
@@ -82,7 +82,7 @@ jobs:
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
         run: |
           pip install -q requests pywebpush > /dev/null 2>&1
-          python jobs/send_push.py > /tmp/push.log 2>&1; rc=$?
+          rc=0; python jobs/send_push.py > /tmp/push.log 2>&1 || rc=$?
           tail -n 100 /tmp/push.log > state/runlogs/push.log
           echo "exit code: $rc"
       - name: save pruned subscriptions

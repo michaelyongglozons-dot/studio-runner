@@ -32,7 +32,7 @@ jobs:
           TIKTOK_HANDLE: ${{ secrets.TIKTOK_HANDLE }}
         run: |
           mkdir -p state/runlogs
-          python jobs/weekly_review.py > /tmp/job.log 2>&1; rc=$?
+          rc=0; python jobs/weekly_review.py > /tmp/job.log 2>&1 || rc=$?
           tail -n 300 /tmp/job.log > state/runlogs/weekly.log
           echo "exit code: $rc"
       - name: save state
@@ -49,7 +49,7 @@ jobs:
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
         run: |
-          python jobs/send_push.py > /tmp/push.log 2>&1; rc=$?
+          rc=0; python jobs/send_push.py > /tmp/push.log 2>&1 || rc=$?
           tail -n 100 /tmp/push.log > state/runlogs/push.log
           echo "exit code: $rc"
       - name: save pruned subscriptions
