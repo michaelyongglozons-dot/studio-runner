@@ -1,7 +1,7 @@
 name: daily-brief
 on:
   schedule:
-    - cron: "30 23 * * *"   # 07:30 Asia/Kuala_Lumpur
+    - cron: "34 23 * * *"   # 07:30 Asia/Kuala_Lumpur
   workflow_dispatch:
 permissions:
   contents: read

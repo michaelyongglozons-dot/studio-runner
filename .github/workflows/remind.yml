@@ -1,8 +1,8 @@
 name: remind
 on:
   schedule:
-    - cron: "0 0 * * *"
-    - cron: "0 12 * * *"
+    - cron: "17 0 * * *"
+    - cron: "17 12 * * *"
   workflow_dispatch:
 permissions:
   contents: read
