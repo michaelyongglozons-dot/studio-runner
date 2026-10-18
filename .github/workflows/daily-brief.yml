@@ -1,0 +1,63 @@
+name: daily-brief
+on:
+  schedule:
+    - cron: "30 23 * * *"   # 07:30 Asia/Kuala_Lumpur
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: state
+  cancel-in-progress: false
+jobs:
+  brief:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: studio
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.STUDIO_REPO }}
+          token: ${{ secrets.STUDIO_PAT }}
+          path: studio
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: install
+        run: |
+          pip install -q requests pywebpush > /dev/null 2>&1
+          npm install --no-save --silent @vercel/blob > /dev/null 2>&1
+      - name: write the daily task (output is kept in the private project, not here)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          BLOB_READ_WRITE_TOKEN: ${{ secrets.BLOB_READ_WRITE_TOKEN }}
+        run: |
+          mkdir -p state/runlogs
+          python jobs/daily_brief.py > /tmp/job.log 2>&1; rc=$?
+          tail -n 300 /tmp/job.log > state/runlogs/daily-brief.log
+          echo "exit code: $rc"
+      - name: save state
+        if: always()
+        run: |
+          git config user.name "studio bot" && git config user.email "bot@users.noreply.github.com"
+          git add state
+          git diff --cached --quiet || git commit -q -m "brief $(date -u +%F)" > /dev/null 2>&1
+          git pull -q --rebase --autostash origin main > /dev/null 2>&1 || true
+          git push -q origin HEAD:main > /dev/null 2>&1 || true
+      - name: push notifications
+        if: always()
+        env:
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+        run: |
+          python jobs/send_push.py > /tmp/push.log 2>&1; rc=$?
+          tail -n 100 /tmp/push.log > state/runlogs/push.log
+          echo "exit code: $rc"
+      - name: save pruned subscriptions
+        if: always()
+        run: |
+          git add state
+          git diff --cached --quiet || git commit -q -m "prune push subscriptions" > /dev/null 2>&1
+          git pull -q --rebase --autostash origin main > /dev/null 2>&1 || true
+          git push -q origin HEAD:main > /dev/null 2>&1 || true
